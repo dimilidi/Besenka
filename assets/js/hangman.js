@@ -1,0 +1,291 @@
+
+
+//======================================================================
+//                          Global Variables
+//======================================================================
+
+// Letters
+const letters = "абвгдежзийклмнопрстуфхцчшщъьюя";
+
+// Get array from Letters
+let lettersArray = letters.split('');
+
+// Create an object of categories with words
+const words = {
+  movies: ["сред дивата природа", "кръстникът", "матрицата", "сам вкъщи"],
+  people: ["aлберт aйнщайн", "xичкок", "майкъл джексън", "клеопатра ", "махатма ганди"],
+  countries: ["българия", "германия", "йемен", "eгипет", "mалта", "катар"]
+};
+
+//Define the chosen word
+let chosenWord = "" ;
+
+// Get all categories
+let allCategories = Object.keys(words);
+
+// Array for the right letters
+const rightWord = [];
+
+// Array for the wrong letters
+const wrongWord = [];
+
+// Empty underscores for every letter of the chosen word
+const underScore = [];
+
+//Lives initially
+let lives = 8;
+
+//======================================================================
+//                         Dom Manipulations
+//======================================================================
+const arrowContainer = document.querySelector('.arrow-container');
+const heading2 = document.querySelector('.h2');
+const categoryContainer = document.querySelector('div.category');
+const docSelectCategory = document.querySelector("#select_category");
+const docCategoryOption = document.querySelectorAll("option");
+const firstOption = document.getElementById('first_option');
+const lettersContainer = document.querySelector(".letters");
+const docUnderScore = document.getElementsByClassName('underscore');
+const docRightGuess = document.getElementsByClassName('rightGuess');
+const docWrongGuess = document.querySelector('.wrong-guess');
+const docGuesses = document.getElementById('guesses');
+const theDraw = document.querySelector(".hangman-draw");
+const playField = document.querySelector('.main')
+
+
+//======================================================================
+//                                MAIN
+//======================================================================
+
+// The player should click the arrow and select a category in order to start the game
+arrowContainer.onclick = () => {
+    categoryContainer.classList.add('be-visible');
+    heading2.classList.add('be-visible');
+}
+
+//Create underscores or empty spaces based on length of word
+const generateUnderscore = () => {
+    for (let i = 0; i < chosenWord.length; i++) {
+        if(chosenWord[i] == ' ') {
+            underScore.push("&nbsp");
+        } else {
+            underScore.push('_');
+        }
+    }
+   docUnderScore[0].innerHTML = underScore.join(' ');
+    return underScore;
+}; 
+
+
+//Remove underscores
+const removeUnderScore = () => {
+    underScore.splice(0);
+}
+
+// Disable the keyboard
+document.onkeydown = () => false;
+
+
+// Print underscores for a random word of the selected category
+let print = () => {
+
+    //remove underscores before generating new ones
+    removeUnderScore();
+
+
+    // get a category and the words in every category
+    for (let i = 0; i < allCategories.length; i++) {
+        //get a category
+        let category = allCategories[i]; 
+        docCategoryOption.innerHTML = category;
+        // get the words in every category
+        let wordsInCategory = words[category];  
+
+        // check if a category has been selected, hide the start page and desplay the game field
+        if (docSelectCategory.value == category || docSelectCategory.value == 'random') {
+            arrowContainer.classList.add('no-display');
+            playField.classList.add('display'); 
+        }
+
+        // check which category has been selected and generate underscores for a random word of it 
+        if (docSelectCategory.value == category) {
+            chosenWord = wordsInCategory[Math.floor(Math.random() *wordsInCategory.length)];  
+            generateUnderscore();
+            //unlock the keyboard
+            document.onkeydown = () => true;
+            //disable the "select a category" option
+            firstOption.disabled = true; 
+        }
+    }
+
+    // if the selected category is "random", generate underscores for a random word of a random category
+    if (docSelectCategory.value == 'random') {
+        // get a random category
+        let categoryRandom = allCategories[Math.floor(Math.random() * allCategories.length)];
+        // words in random category 
+        let wordsInRandomCategory = words[categoryRandom];
+        // randomly chosen word in random category
+        let chosenWordInRandomCategory = wordsInRandomCategory[Math.floor(Math.random() * wordsInRandomCategory.length)];
+        chosenWord = chosenWordInRandomCategory;  
+        generateUnderscore(); 
+        //unlock the keyboard
+        document.onkeydown = () => true;
+    }  
+}
+
+
+// Let the player select a category
+docSelectCategory.addEventListener('change',print);
+
+
+// ============================= Event Listener for COMPUTER ============================= 
+
+//Get users guess on a Computer with Keyboard
+document.addEventListener('keypress', (event) => {
+
+    //once the game has been started the player is not allowed to change the category/ word
+    docSelectCategory.disabled = true;
+
+    // guess a letter by typing on the keyboard
+    let keyword =(event.key).toLowerCase();
+
+    // alert player to guess a letter only once
+    if (JSON.stringify(wrongWord).includes(keyword) || JSON.stringify(rightWord).includes(keyword)){
+        // sound alert
+        document.getElementById("alert").play();
+        // pop-up message alert
+        swal("You've already used this letter!","Choose another letter", "warning");
+
+    // game over by 8 wrong letters 
+    } else  if ( wrongWord.length === 8){
+        document.getElementById("game_over").play();
+        swal("Game over!", "Start a new game", "error");
+        // disable keyboard input
+        document.onkeydown = () => false
+    
+
+    //if the guess is wrong
+    } else if (!(chosenWord.includes(keyword))) {
+        // player is loosing live points
+        lives--;
+        docGuesses.innerHTML = lives;
+        // put wrong words into wrongWord and show the wrong letters to the player
+        wrongWord.push(keyword);
+        docWrongGuess.innerHTML = wrongWord.join(', ');
+        // add class wrong on the draw element and draw the hangman
+        theDraw.classList.add(`wrong-${wrongWord.length}`);
+        // play a sound alerting the wrong answer
+        document.getElementById("wrong_answer").play();
+         
+    //if the guess is right
+    }  else {
+        // put right letter into rightWord 
+        rightWord.push(keyword);
+        //replace underscore with the right letter
+        let letter = chosenWord.split('');
+        letter.forEach((letter, index) => {
+            if (letter == keyword) {
+                underScore[index] = letter;
+                docUnderScore[0].innerHTML = underScore.join(' '); 
+            }
+        });
+
+        // check if the guessed word matches the chosen word
+        if (underScore.join('').replace(/&nbsp/g, ' ') == chosenWord) {
+            // play success sound
+            document.getElementById("success").play();
+            // congratulate the player
+            swal("Good job!", "The word was " + chosenWord.toUpperCase(), "success");
+            // disable keyboard input
+            document.onkeydown = () => false;
+        }  
+    }
+});
+
+
+// ============================= Event Listener for MOBILE DEVICES ============================= 
+
+// Generate letters for the virtual keyboard of mobile devices
+lettersArray.forEach(letter => {
+
+  // create span
+  let span = document.createElement("span");
+
+  // create letter text node
+  let theLetter = document.createTextNode(letter);
+
+  // append the letter to span
+  span.appendChild(theLetter);
+
+  // add class on span
+  span.className = 'letter-box';
+
+  // append span to the letters container
+  lettersContainer.appendChild(span);
+
+});
+
+//Get users guess on Mobile Device with Virtual Keyboard
+document.addEventListener('click', (event) => {
+  // Set The Choose Status
+  let theStatus = false;
+
+  if (event.target.className === 'letter-box') {
+  
+      event.target.classList.add("clicked");
+  
+    // Get Clicked Letter
+      let theClickedLetter = event.target.innerHTML.toLowerCase();
+
+    //once the game has been started the player is not allowed to change the category/ word
+      docSelectCategory.disabled = true;
+
+      if ( wrongWord.length === 8){
+          document.getElementById("game_over").play();
+          alert('Game over!');
+          // disable keyboard input
+         lettersContainer.classList.add('finished');
+      
+
+      //if the guess is wrong
+      } else if (!(chosenWord.includes(theClickedLetter))) {
+          // player is loosing live points
+          lives--;
+          docGuesses.innerHTML = lives;
+          // put wrong words into wrongWord and show the wrong letters to the player
+          wrongWord.push(theClickedLetter);
+          docWrongGuess.innerHTML = wrongWord.join(', ');
+          // play a sound alerting the wrong answer
+          document.getElementById("wrong_answer").play();
+          
+      //if the guess is right
+      }  else {
+          // put right letter into rightWord 
+          rightWord.push(theClickedLetter);
+          //replace underscore with the right letter
+          let letter = chosenWord.split('');
+          letter.forEach((letter, index) => {
+              if (letter == theClickedLetter) {
+                  underScore[index] = letter;
+                  docUnderScore[0].innerHTML = underScore.join(' '); 
+              }
+          });
+
+          // check if the guessed word matches the chosen word
+          if (underScore.join('').replace(/&nbsp/g, ' ') == chosenWord) {
+              // play success sound
+              document.getElementById("success").play();
+              // congratulate the player
+              alert("Good job! The word was " + chosenWord.toUpperCase());
+              // disable keyboard input
+              lettersContainer.classList.add('finished');
+          }  
+      }
+  }
+});
+
+
+
+
+
+//======================================================================
